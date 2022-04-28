@@ -54,7 +54,7 @@ std::bitset<n> int_to_biased_bits(int num)
 }
 
 template <long long unsigned int n>
-double significant_to_double(std::bitset<n> bits)
+double significand_to_double(std::bitset<n> bits)
 {
     double sum = 0;
     for (int i = n; i >= 0; i--)
@@ -71,7 +71,7 @@ double significant_to_double(std::bitset<n> bits)
 //Float and double bit functions
 std::bitset<32> float_to_bits(float f)
 {
-    //if (f == 0) return std::bitset<32>("00000000000000000000000000000000");
+    if (f == 0) return std::bitset<32>("00000000000000000000000000000000");
     char bitSign;
     if (f < 0)
     {
@@ -108,17 +108,18 @@ float bits_to_float(std::bitset<32> bits)
     //Biased exponent
     std::bitset<8> exponent(bitsStr.substr(1, 8));
     auto exponentInt = to_biased_int(exponent);
-    //Significant
-    std::bitset<23> significant(bitsStr.substr(9, 31));
-    auto significantFloat = significant_to_double(significant);
+    //Significand
+    std::bitset<23> significand(bitsStr.substr(9, 31));
+    auto significandFloat = significand_to_double(significand);
     if (bits[31])
-        return -1 * significantFloat * pow2(exponentInt);
+        return -1 * significandFloat * pow2(exponentInt);
     else
-        return significantFloat * pow2(exponentInt);
+        return significandFloat * pow2(exponentInt);
 }
 
 std::bitset<64> double_to_bits(double d)
 {
+    if (d == 0) return std::bitset<64>("0000000000000000000000000000000000000000000000000000000000000000");
     char bitSign;
     if (d < 0)
     {
@@ -147,7 +148,6 @@ std::bitset<64> double_to_bits(double d)
     //Calculate exponent
     auto exponent = int_to_biased_bits<11>(bits1i.length() - 1);
     return std::bitset<64>(bitSign + exponent.to_string() + bits1i.substr(1, bits1i.length()) + bits2f);
-
 }
 
 double bits_to_double(std::bitset<64> bits)
@@ -156,23 +156,34 @@ double bits_to_double(std::bitset<64> bits)
     //Biased exponent
     std::bitset<11> exponent(bitsStr.substr(1, 11));
     auto exponentInt = to_biased_int(exponent);
-    //Significant
-    std::bitset<52> significant(bitsStr.substr(12, 63));
-    auto significantFloat = significant_to_double(significant);
+    //Significand
+    std::bitset<52> significand(bitsStr.substr(12, 63));
+    auto significandFloat = significand_to_double(significand);
     if (bits[63])
-        return -1 * significantFloat * pow2(exponentInt);
+        return -1 * significandFloat * pow2(exponentInt);
     else
-        return significantFloat * pow2(exponentInt);
+        return significandFloat * pow2(exponentInt);
 }
 
 std::bitset<64> floatBits_to_DoubleBits(std::bitset<32> bits)
 {
+    bool isZero = true;
+    for (int i = 0; i < 32; i++)
+    {
+        if (bits[i])
+        {
+            isZero = false;
+            break;
+        }
+    }
+    if (isZero)
+        return std::bitset<64>("0000000000000000000000000000000000000000000000000000000000000000");
     auto bitsStr = bits.to_string();
     auto exponent = bitsStr.substr(1, 8);
     auto newExponent = int_to_biased_bits<11>(to_biased_int(std::bitset<8>(exponent)));
-    auto significant = bitsStr.substr(9, 31);
-    auto newSignificant = significant += "00000000000000000000000000000";
-    return std::bitset<64>(bitsStr[0] + newExponent.to_string() + newSignificant);
+    auto significand = bitsStr.substr(9, 31);
+    auto newSignificand = significand += "00000000000000000000000000000";
+    return std::bitset<64>(bitsStr[0] + newExponent.to_string() + newSignificand);
 }
 
 //Get the bits from a variable (float and double)
